@@ -95,8 +95,12 @@ public class RecordedObjectController : MonoBehaviour
     public RecordingController.RecordMode m_RecordMode;
     [HideInInspector]
     public string textFileLocation;
+    public TextAsset m_TextFile;
     private bool isRecording;
     private int playbackIndex = 0;
+    private Vector3 m_PosOffset;
+    private Quaternion m_RotOffset;
+    private Vector3 m_ScaleOffset;
 
     public void SetRecordingController(RecordingController value)
     {
@@ -107,13 +111,33 @@ public class RecordedObjectController : MonoBehaviour
         }
     }
 
+    public void SetOffsets(Vector3 posOffset, Quaternion rotOffset, Vector3 scaleOffset)
+    {
+        m_PosOffset = posOffset;
+        m_RotOffset = rotOffset;
+        m_ScaleOffset = scaleOffset;
+    }
+    string GetFile()
+    {
+        if (m_TextFile == null)
+        {
+            return System.IO.File.ReadAllText(textFileLocation + gameObject.name + ".txt");
+        }
+        else
+        {
+            return m_TextFile.text;
+        }
+    }
+
     void Start()
     {
         isRecording = m_RecordMode == RecordingController.RecordMode.On;
 
         if (!isRecording)
         {
-            Deserialize(System.IO.File.ReadAllText(textFileLocation + gameObject.name + ".txt"));
+            Logger.Log("Start");
+
+            Deserialize(GetFile());
             gameObject.GetComponent<Rigidbody>().isKinematic = true;
             // TODO: turn off collider on object
         }
@@ -156,9 +180,9 @@ public class RecordedObjectController : MonoBehaviour
     {
         if (playbackIndex >= m_DataWrapper.m_PositionList.Count) playbackIndex = 0;
 
-        transform.position = m_DataWrapper.m_PositionList[playbackIndex];
+        transform.position = m_DataWrapper.m_PositionList[playbackIndex] + m_PosOffset;
         transform.localScale = m_DataWrapper.m_ScaleList[playbackIndex];
-        transform.rotation = Quaternion.Euler(m_DataWrapper.m_RotationList[playbackIndex]);
+        transform.rotation = Quaternion.Euler(m_DataWrapper.m_RotationList[playbackIndex] + m_RotOffset.eulerAngles);
 
         ++playbackIndex;
     }

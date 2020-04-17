@@ -18,24 +18,48 @@ public class RecordingController : MonoBehaviour
     public string m_TextFileLocation;
     [SerializeField]
     private GameObject m_DisplayCanvas;
+    private List<RecordedObjectController> m_RecordedObjectControllers;
+    private Vector3 m_PosOffset;
+    private Quaternion m_RotOffset;
+    private Vector3 m_ScaleOffset;
 
     void Awake()
     {
+        ResetRecordingController();
+
+        if (m_RecordMode == RecordMode.Off && m_DisplayCanvas != null)
+        {
+            m_DisplayCanvas.transform.Find("RecordingImage").GetComponent<Image>().enabled = false;
+        }
+    }
+
+    public void ResetRecordingController()
+    {
         List<GameObject> m_RecordedObjects = new List<GameObject>(GameObject.FindGameObjectsWithTag("RecordedObject"));
-        List<RecordedObjectController> m_RecordedObjectControllers = m_RecordedObjects.Select((GameObject obj) => obj.GetComponent<RecordedObjectController>()).ToList();
+        m_RecordedObjectControllers = m_RecordedObjects.Select((GameObject obj) => obj.GetComponent<RecordedObjectController>()).ToList();
 
         // set the m_RecordingController for every object
         foreach (RecordedObjectController roc in m_RecordedObjectControllers)
         {
             roc.SetRecordingController(this);
-            
+
             roc.m_RecordMode = m_RecordMode;
             roc.textFileLocation = m_TextFileLocation;
         }
+    }
 
-        if (m_RecordMode == RecordMode.Off && m_DisplayCanvas != null)
+    public void SetOffsets(Vector3 posOffset, Quaternion rotOffset, Vector3 scaleOffset)
+    {
+        m_PosOffset = posOffset;
+        m_RotOffset = rotOffset;
+        m_ScaleOffset = scaleOffset;        
+    }
+
+    public void SetChildOffsets()
+    {
+        foreach (RecordedObjectController roc in m_RecordedObjectControllers)
         {
-            m_DisplayCanvas.transform.Find("RecordingImage").GetComponent<Image>().enabled = false;
+            roc.SetOffsets(m_PosOffset, m_RotOffset, m_ScaleOffset);
         }
     }
 }
