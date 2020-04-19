@@ -748,6 +748,7 @@ PlayerSettings:
       daydreamIconForeground: {fileID: 0}
       daydreamIconBackground: {fileID: 0}
   cloudServicesEnabled:
+    Collab: 1
     UNet: 1
   luminIcon:
     m_Name: 
@@ -761,10 +762,10 @@ PlayerSettings:
     m_VersionCode: 1
     m_VersionName: 
   apiCompatibilityLevel: 6
-  cloudProjectId: 
+  cloudProjectId: ed58505e-b222-4b4f-8b5e-3d1f53ee7f5e
   framebufferDepthMemorylessMode: 0
-  projectName: 
-  organizationId: 
+  projectName: VRRecording
+  organizationId: quintonhoffman22
   cloudEnabled: 0
   enableNativePlatformBackendsForNewInputSystem: 0
   disableOldInputManagerSupport: 0
