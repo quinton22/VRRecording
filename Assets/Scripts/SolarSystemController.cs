@@ -152,7 +152,7 @@ public class SolarSystemController : MonoBehaviour
     private float m_BaseStandHeight = 3;
 
     [SerializeField]
-    [Range(0, 3153600)]
+    [Range(.000001f, 100)]
     [Tooltip("How many times faster than realtime")]
     private float m_TimeScale = 1;
 
@@ -191,10 +191,10 @@ public class SolarSystemController : MonoBehaviour
         foreach (Planet planet in m_Planets)
         {
             // rotate planets (revolve)
-            planet.RotatePlanet(360 / planet.m_OrbitTime * Time.deltaTime);
+            planet.RotatePlanet(360 / planet.m_OrbitTime * Time.deltaTime / m_TimeScale);
 
             // spin planets
-            planet.SpinPlanet(360 / planet.m_SpinTime * Time.deltaTime);
+            planet.SpinPlanet(360 / planet.m_SpinTime * Time.deltaTime / m_TimeScale);
         }
     }
 
