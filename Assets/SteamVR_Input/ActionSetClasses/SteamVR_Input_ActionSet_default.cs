@@ -113,6 +113,30 @@ namespace Valve.VR
             }
         }
         
+        public virtual SteamVR_Action_Boolean PlayPauseRecording
+        {
+            get
+            {
+                return SteamVR_Actions.default_PlayPauseRecording;
+            }
+        }
+        
+        public virtual SteamVR_Action_Boolean StopRecording
+        {
+            get
+            {
+                return SteamVR_Actions.default_StopRecording;
+            }
+        }
+        
+        public virtual SteamVR_Action_Vector2 ScaleObject
+        {
+            get
+            {
+                return SteamVR_Actions.default_ScaleObject;
+            }
+        }
+        
         public virtual SteamVR_Action_Vibration Haptic
         {
             get

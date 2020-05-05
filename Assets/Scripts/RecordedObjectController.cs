@@ -94,13 +94,24 @@ public class RecordedObjectController : MonoBehaviour
     [HideInInspector]
     public RecordingController.RecordMode m_RecordMode;
     [HideInInspector]
+    public RecordingController.RecordingState m_RecordingState;
+    [HideInInspector]
+    public bool m_PlaybackInFixedUpdate;
+    [HideInInspector]
+    public bool m_RestartPlaybackOnFinish;
+    [HideInInspector]
     public string textFileLocation;
     public TextAsset m_TextFile;
     private bool isRecording;
     private int playbackIndex = 0;
+    private float elapsedTime = 0;
     private Vector3 m_PosOffset;
     private Quaternion m_RotOffset;
     private Vector3 m_ScaleOffset;
+    private Vector3 previousPosition;
+    private Vector3 previousScale;
+    private Quaternion previousRotation;
+    private bool isPreviousTransformSet = false;
 
     public void SetRecordingController(RecordingController value)
     {
@@ -138,6 +149,8 @@ public class RecordedObjectController : MonoBehaviour
             Logger.Log("Start");
 
             Deserialize(GetFile());
+
+            //if (m_PlaybackInFixedUpdate) // objects act weird if not kinematic
             gameObject.GetComponent<Rigidbody>().isKinematic = true;
             // TODO: turn off collider on object
         }
@@ -145,8 +158,14 @@ public class RecordedObjectController : MonoBehaviour
 
     void OnDestroy()
     {
+        // TODO: make sure we are writing every time
         if (isRecording)
-            System.IO.File.WriteAllText(textFileLocation + gameObject.name + ".txt", Serialize());
+            WriteToTextFile();
+    }
+
+    void WriteToTextFile()
+    {
+        System.IO.File.WriteAllText(textFileLocation + gameObject.name + ".txt", Serialize());
     }
 
     // This is better because it does not depend on frame rate... but (TODO) it may cause some perceived lag
@@ -156,12 +175,50 @@ public class RecordedObjectController : MonoBehaviour
     {
         if (isRecording)
         {
-            Record();
+            // TODO: what is the proper functionality when pausing while recording?
+            // should objects freeze? can the player interact with them? should they have gravity?
+            if (m_RecordingState == RecordingController.RecordingState.Paused || m_RecordingState == RecordingController.RecordingState.Stopped)
+            {
+
+            }
+            else
+            {
+                StopMaintainingTransform();
+                Record();
+            }
         }
-        else 
+        else if (m_PlaybackInFixedUpdate)
         {
-            Playback();
+            PlaybackAndMaintain(Playback);
         }
+    }
+
+    void Update()
+    {
+        if (!isRecording && !m_PlaybackInFixedUpdate) // playback mode && not fixedupdate
+        {
+           PlaybackAndMaintain(LerpPlayback);
+        }
+    }
+
+    void MaintainTransform()
+    {
+        if (!isPreviousTransformSet)
+        {
+            previousPosition = transform.position;
+            previousScale = transform.localScale;
+            previousRotation = transform.rotation;
+            isPreviousTransformSet = true;
+        }
+
+        transform.position = previousPosition;
+        transform.localScale = previousScale;
+        transform.rotation = previousRotation;
+    }
+
+    void StopMaintainingTransform()
+    {
+        if (isPreviousTransformSet) isPreviousTransformSet = false;
     }
 
     void Record()
@@ -176,15 +233,71 @@ public class RecordedObjectController : MonoBehaviour
         m_DataWrapper.m_RotationList.Add(transform.rotation.eulerAngles);
     }
 
+    void PlaybackAndMaintain(Action playbackFunction)
+    {
+        // maintain position if paused or stopped
+        if (m_RecordingState == RecordingController.RecordingState.Paused || m_RecordingState == RecordingController.RecordingState.Stopped)
+        {
+            MaintainTransform();
+        }
+        else
+        {
+            StopMaintainingTransform();
+            playbackFunction();
+        }
+    }
+
     void Playback()
     {
-        if (playbackIndex >= m_DataWrapper.m_PositionList.Count) playbackIndex = 0;
+        if (playbackIndex >= m_DataWrapper.m_PositionList.Count) 
+        {
+            if (m_RestartPlaybackOnFinish)
+                playbackIndex = 0; // start over
+            else
+                playbackIndex--; // play last frame
+        }
 
         transform.position = m_DataWrapper.m_PositionList[playbackIndex] + m_PosOffset;
         transform.localScale = m_DataWrapper.m_ScaleList[playbackIndex];
         transform.rotation = Quaternion.Euler(m_DataWrapper.m_RotationList[playbackIndex] + m_RotOffset.eulerAngles);
 
         ++playbackIndex;
+    }
+
+    void LerpPlayback()
+    {
+        if (playbackIndex >= m_DataWrapper.m_PositionList.Count - 1)
+        {
+            if (m_RestartPlaybackOnFinish)
+            {
+                elapsedTime = 0;
+                playbackIndex = 0; // start over
+            }
+            else
+            {
+                elapsedTime -= Time.deltaTime;
+                playbackIndex--; // play last frame
+            }
+        }
+
+        transform.position = Vector3.Lerp(
+                m_DataWrapper.m_PositionList[playbackIndex],
+                m_DataWrapper.m_PositionList[playbackIndex+1],
+                elapsedTime-playbackIndex
+            ) + m_PosOffset;
+        transform.localScale = Vector3.Lerp(
+                m_DataWrapper.m_ScaleList[playbackIndex],
+                m_DataWrapper.m_ScaleList[playbackIndex+1],
+                elapsedTime-playbackIndex
+            );
+        transform.rotation = Quaternion.Lerp(
+                Quaternion.Euler(m_DataWrapper.m_RotationList[playbackIndex] + m_RotOffset.eulerAngles),
+                Quaternion.Euler(m_DataWrapper.m_RotationList[playbackIndex+1] + m_RotOffset.eulerAngles),
+                elapsedTime-playbackIndex
+            );
+
+        elapsedTime+=Time.deltaTime;
+        playbackIndex=(int) Mathf.Floor(elapsedTime / (float) m_DataWrapper.m_TimeStep);
     }
 
     public string Serialize()
